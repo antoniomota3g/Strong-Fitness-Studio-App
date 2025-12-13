@@ -9,6 +9,7 @@ python = "^3.12"
 streamlit = "^1.49.0"
 pydantic-settings = "^2.8.1"
 streamlit-calendar = "^1.4.0"
+psycopg2-binary = "^2.9.11"
 
 [tool.poetry.group.dev.dependencies]
 

@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug FastAPI: Local",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "cwd": "${workspaceFolder}/backend",
+            "python": "/home/mota/.cache/pypoetry/virtualenvs/test-framework-next-yY8Loa0w-py3.13/bin/python",
+            "args": [
+                "src.main:app",
+                "--reload",
+                "--env-file",
+                ".env"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Debug Streamlit: Local",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "python": "/home/mota/.cache/pypoetry/virtualenvs/strong_fitness_studio_app-hYsC0-9a-py3.13/bin/python",
+            "module": "streamlit",
+            "console": "integratedTerminal",
+            "args": [
+                "run",
+                "🏠_Homepage.py"
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug FastAPI + Streamlit: Local + Angular Local",
+            "configurations": [
+                "Debug FastAPI: Local",
+                "Debug Streamlit: Local",
+            ]
+        }
+    ]
+}

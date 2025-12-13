@@ -1,11 +1,13 @@
 import streamlit as st
 from datetime import date, datetime, timedelta
 from streamlit_calendar import calendar
+from utils import add_logo
 
-st.set_page_config(page_title="Training Calendar", page_icon="📅", layout="wide")
+add_logo()
 
-st.markdown("# Training Calendar")
-st.sidebar.header("Training Calendar")
+st.set_page_config(page_title="Calendário de Treinos", page_icon="📅", layout="wide")
+
+st.markdown("# Calendário de Treinos")
 
 # Initialize session state
 if "athletes" not in st.session_state:
@@ -16,42 +18,42 @@ if "training_sessions" not in st.session_state:
 # Check if there are training sessions
 if not st.session_state.training_sessions:
     st.warning(
-        "⚠️ No training sessions scheduled yet. Please create sessions in the Training Session page."
+        "⚠️ Nenhuma sessão de treino agendada ainda. Por favor crie sessões na página de Sessão de Treino."
     )
     st.stop()
 
-st.write("View all scheduled training sessions in a calendar format.")
+st.write("Visualize todas as sessões de treino agendadas num formato de calendário.")
 
 # Filter options
-st.subheader("Filters")
+st.subheader("Filtros")
 col_filter1, col_filter2, col_filter3 = st.columns(3)
 
 with col_filter1:
     # Filter by athlete
-    athlete_options = ["All Athletes"] + [
+    athlete_options = ["Todos os Atletas"] + [
         f"{a['first_name']} {a['last_name']}" for a in st.session_state.athletes
     ]
-    filter_athlete = st.selectbox("Filter by Athlete", athlete_options)
+    filter_athlete = st.selectbox("Filtrar por Atleta", athlete_options)
 
 with col_filter2:
     # Filter by status
     filter_status = st.selectbox(
-        "Filter by Status", ["All", "Scheduled", "Completed", "Cancelled"]
+        "Filtrar por Estado", ["Todos", "Scheduled", "Completed", "Cancelled"]
     )
 
 with col_filter3:
     # Filter by session type
     filter_type = st.selectbox(
-        "Filter by Type",
+        "Filtrar por Tipo",
         [
-            "All",
-            "Strength Training",
+            "Todos",
+            "Treino de Força",
             "Cardio",
             "HIIT",
-            "Flexibility",
-            "Mixed",
-            "Sport-Specific",
-            "Recovery",
+            "Flexibilidade",
+            "Misto",
+            "Específico de Desporto",
+            "Recuperação",
         ],
     )
 
@@ -72,11 +74,11 @@ status_colors = {
 
 for idx, session in enumerate(st.session_state.training_sessions):
     # Apply filters
-    if filter_athlete != "All Athletes" and session["athlete_name"] != filter_athlete:
+    if filter_athlete != "Todos os Atletas" and session["athlete_name"] != filter_athlete:
         continue
-    if filter_status != "All" and session["status"] != filter_status:
+    if filter_status != "Todos" and session["status"] != filter_status:
         continue
-    if filter_type != "All" and session["session_type"] != filter_type:
+    if filter_type != "Todos" and session["session_type"] != filter_type:
         continue
 
     # Combine date and time
@@ -150,11 +152,11 @@ state = calendar(
 if state.get("eventsSet"):
     col_leg1, col_leg2, col_leg3 = st.columns(3)
     with col_leg1:
-        st.markdown("🔵 **Scheduled** - Upcoming sessions")
+        st.markdown("🔵 **Agendado** - Próximas sessões")
     with col_leg2:
-        st.markdown("🟢 **Completed** - Finished sessions")
+        st.markdown("🟢 **Completo** - Sessões terminadas")
     with col_leg3:
-        st.markdown("🔴 **Cancelled** - Cancelled sessions")
+        st.markdown("🔴 **Cancelado** - Sessões canceladas")
 
 # Display event details when clicked
 if state.get("eventClick"):
@@ -172,18 +174,18 @@ if state.get("eventClick"):
         col_info1, col_info2 = st.columns(2)
 
         with col_info1:
-            st.write(f"**📅 Date:** {session['session_date'].strftime('%B %d, %Y')}")
-            st.write(f"**🕐 Time:** {session['session_time'].strftime('%H:%M')}")
-            st.write(f"**⏱️ Duration:** {session['duration']} minutes")
+            st.write(f"**📅 Data:** {session['session_date'].strftime('%d de %B, %Y')}")
+            st.write(f"**🕐 Hora:** {session['session_time'].strftime('%H:%M')}")
+            st.write(f"**⏱️ Duração:** {session['duration']} minutos")
 
         with col_info2:
-            st.write(f"**🏋️ Type:** {session['session_type']}")
-            st.write(f"**📊 Exercises:** {len(session['exercises'])}")
-            st.write(f"**📝 Created:** {session['created_date'].strftime('%B %d, %Y')}")
+            st.write(f"**🏋️ Tipo:** {session['session_type']}")
+            st.write(f"**📊 Exercícios:** {len(session['exercises'])}")
+            st.write(f"**📝 Criado:** {session['created_date'].strftime('%d de %B, %Y')}")
 
         if session["session_notes"]:
             st.divider()
-            st.write("**📝 Session Notes:**")
+            st.write("**📝 Notas da Sessão:**")
             st.info(session["session_notes"])
 
         st.divider()
@@ -193,14 +195,14 @@ if state.get("eventClick"):
                 col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
 
                 with col_ex1:
-                    st.metric("Sets", ex["sets"])
+                    st.metric("Séries", ex["sets"])
                 with col_ex2:
                     st.metric("Reps", ex["reps"])
                 with col_ex3:
-                    st.metric("Rest", f"{ex['rest']}s")
+                    st.metric("Descanso", f"{ex['rest']}s")
                 with col_ex4:
                     if ex["weight"]:
-                        st.metric("Weight", ex["weight"])
+                        st.metric("Peso", ex["weight"])
 
                 if ex["notes"]:
                     st.caption(f"💡 {ex['notes']}")
@@ -215,71 +217,70 @@ if state.get("eventClick"):
 
         with col_btn1:
             if st.button(
-                "🚀 Start Session",
+                "🚀 Iniciar Sessão",
                 use_container_width=True,
                 type="primary",
                 disabled=(session["status"] != "Scheduled"),
             ):
                 st.session_state["active_session"] = session_idx
-                st.switch_page("pages/5_📋_Training_Session.py")
+                st.switch_page("pages/5_📋_Treino.py")
 
         with col_btn2:
             if st.button(
-                "✏️ Edit",
+                "✏️ Editar",
                 use_container_width=True,
-                disabled=(session["status"] == "Completed"),
             ):
                 st.session_state.editing_session_idx = session_idx
-                st.success("Redirecting to edit session...")
-                st.switch_page("pages/📋_Training_Session.py")
+                st.success("A redirecionar para editar sessão...")
+                st.switch_page("pages/3_📝_Plano_de_Treino.py")
 
         with col_btn3:
             if st.button(
-                "❌ Cancel Session",
+                "❌ Cancelar Sessão",
                 use_container_width=True,
                 disabled=(session["status"] != "Scheduled"),
             ):
                 st.session_state.training_sessions[session_idx]["status"] = "Cancelled"
-                st.success("Session cancelled successfully!")
+                st.success("Sessão cancelada com sucesso!")
                 st.rerun()
 
         with col_btn4:
-            if st.button("🗑️ Delete", use_container_width=True, type="secondary"):
+            if st.button("🗑️ Eliminar", use_container_width=True, type="secondary"):
                 if st.session_state.get("confirm_delete") == session_idx:
                     st.session_state.training_sessions.pop(session_idx)
                     st.session_state.pop("confirm_delete", None)
-                    st.success("Session deleted successfully!")
+                    st.success("Sessão eliminada com sucesso!")
                     st.rerun()
                 else:
                     st.session_state.confirm_delete = session_idx
-                    st.warning("⚠️ Click again to confirm deletion")
+                    st.warning("⚠️ Clique novamente para confirmar a eliminação")
 
     show_session_details()
 
 # Statistics section
 st.divider()
-st.subheader("Session Statistics")
+st.subheader("Estatísticas de Sessões")
 
 col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
 
 with col_stat1:
     total_sessions = len([s for s in st.session_state.training_sessions])
-    st.metric("Total Sessions", total_sessions)
+    st.metric("Total de Sessões", total_sessions)
 
 with col_stat2:
     scheduled_sessions = len(
         [s for s in st.session_state.training_sessions if s["status"] == "Scheduled"]
     )
-    st.metric("Scheduled", scheduled_sessions)
+    st.metric("Agendadas", scheduled_sessions)
 
 with col_stat3:
     completed_sessions = len(
         [s for s in st.session_state.training_sessions if s["status"] == "Completed"]
     )
-    st.metric("Completed", completed_sessions)
+    st.metric("Completas", completed_sessions)
 
 with col_stat4:
     cancelled_sessions = len(
         [s for s in st.session_state.training_sessions if s["status"] == "Cancelled"]
     )
-    st.metric("Cancelled", cancelled_sessions)
+    st.metric("Canceladas", cancelled_sessions)

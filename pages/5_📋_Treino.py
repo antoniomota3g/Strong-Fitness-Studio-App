@@ -1,10 +1,12 @@
 import streamlit as st
 from datetime import date, datetime
+from utils import add_logo
 
-st.set_page_config(page_title="Training Session", page_icon="📋", layout="wide")
+add_logo()
 
-st.markdown("# 🏋️ Active Training Session")
-st.sidebar.header("Training Session")
+st.set_page_config(page_title="Sessão de Treino", page_icon="📋", layout="wide")
+
+st.markdown("# 🏋️ Sessão de Treino Ativa")
 
 # Initialize session state
 if 'training_sessions' not in st.session_state:
@@ -16,12 +18,12 @@ if 'exercise_progress' not in st.session_state:
 
 # Check if there's an active session
 if st.session_state.active_session is None:
-    st.warning("⚠️ No active training session. Please start a session from the Training Calendar.")
+    st.warning("⚠️ Nenhuma sessão de treino ativa. Por favor inicie uma sessão a partir do Calendário de Treinos.")
     
     # Option to select a session to start
     if st.session_state.training_sessions:
         st.divider()
-        st.subheader("Start a Session")
+        st.subheader("Iniciar uma Sessão")
         
         scheduled_sessions = [
             (idx, s) for idx, s in enumerate(st.session_state.training_sessions)
@@ -34,14 +36,14 @@ if st.session_state.active_session is None:
                 for idx, s in scheduled_sessions
             ]
             
-            selected = st.selectbox("Select a session to start:", range(len(session_options)),
+            selected = st.selectbox("Selecione uma sessão para iniciar:", range(len(session_options)),
                                    format_func=lambda x: session_options[x])
             
-            if st.button("🚀 Start This Session", type="primary"):
+            if st.button("🚀 Iniciar Esta Sessão", type="primary"):
                 st.session_state.active_session = scheduled_sessions[selected][0]
                 st.rerun()
         else:
-            st.info("No scheduled sessions available to start.")
+            st.info("Nenhuma sessão agendada disponível para iniciar.")
     
     st.stop()
 
@@ -85,16 +87,16 @@ with col_header1:
 with col_header2:
     elapsed_time = datetime.now() - progress['started_at']
     minutes = int(elapsed_time.total_seconds() // 60)
-    st.metric("Elapsed Time", f"{minutes} min")
+    st.metric("Tempo Decorrido", f"{minutes} min")
 
 with col_header3:
     completed_exercises = len([e for e in progress['exercises'] if e['status'] == 'completed'])
-    st.metric("Progress", f"{completed_exercises}/{len(progress['exercises'])}")
+    st.metric("Progresso", f"{completed_exercises}/{len(progress['exercises'])}")
 
 st.divider()
 
 # Exercise tracking
-st.subheader("💪 Exercises")
+st.subheader("💪 Exercícios")
 
 for idx, exercise_progress in enumerate(progress['exercises']):
     exercise_name = exercise_progress['exercise_name']
@@ -120,28 +122,28 @@ for idx, exercise_progress in enumerate(progress['exercises']):
         col_ex1, col_ex2 = st.columns([2, 1])
         
         with col_ex1:
-            st.write("**Planned:**")
+            st.write("**Planeado:**")
             col_plan1, col_plan2, col_plan3, col_plan4 = st.columns(4)
             with col_plan1:
-                st.metric("Sets", exercise_progress['planned_sets'])
+                st.metric("Séries", exercise_progress['planned_sets'])
             with col_plan2:
                 st.metric("Reps", exercise_progress['planned_reps'])
             with col_plan3:
-                st.metric("Rest", f"{exercise_progress['planned_rest']}s")
+                st.metric("Descanso", f"{exercise_progress['planned_rest']}s")
             with col_plan4:
-                st.metric("Weight", exercise_progress['planned_weight'] or "N/A")
+                st.metric("Peso", exercise_progress['planned_weight'] or "N/A")
         
         with col_ex2:
             current_status = st.selectbox(
-                "Status",
+                "Estado",
                 ['pending', 'completed', 'failed', 'skipped'],
                 index=['pending', 'completed', 'failed', 'skipped'].index(status),
                 key=f"status_{session_idx}_{idx}",
                 format_func=lambda x: {
-                    'pending': '⏳ Pending',
-                    'completed': '✅ Completed',
-                    'failed': '❌ Failed',
-                    'skipped': '⏭️ Skipped'
+                    'pending': '⏳ Pendente',
+                    'completed': '✅ Completo',
+                    'failed': '❌ Falhado',
+                    'skipped': '⏭️ Saltado'
                 }[x]
             )
             
@@ -153,12 +155,12 @@ for idx, exercise_progress in enumerate(progress['exercises']):
         st.divider()
         
         # Actual performance tracking
-        st.write("**Actual Performance:**")
+        st.write("**Performance Real:**")
         col_actual1, col_actual2, col_actual3, col_actual4 = st.columns(4)
         
         with col_actual1:
             actual_sets = st.number_input(
-                "Sets",
+                "Séries",
                 min_value=0,
                 max_value=20,
                 value=exercise_progress['actual_sets'],
@@ -168,7 +170,7 @@ for idx, exercise_progress in enumerate(progress['exercises']):
         
         with col_actual2:
             actual_reps = st.text_input(
-                "Reps/Duration",
+                "Reps/Duração",
                 value=exercise_progress['actual_reps'],
                 key=f"actual_reps_{session_idx}_{idx}"
             )
@@ -176,7 +178,7 @@ for idx, exercise_progress in enumerate(progress['exercises']):
         
         with col_actual3:
             actual_rest = st.number_input(
-                "Rest (sec)",
+                "Descanso (seg)",
                 min_value=0,
                 max_value=600,
                 value=exercise_progress['actual_rest'],
@@ -187,7 +189,7 @@ for idx, exercise_progress in enumerate(progress['exercises']):
         
         with col_actual4:
             actual_weight = st.text_input(
-                "Weight/Intensity",
+                "Peso/Intensidade",
                 value=exercise_progress['actual_weight'],
                 key=f"actual_weight_{session_idx}_{idx}"
             )
@@ -195,9 +197,9 @@ for idx, exercise_progress in enumerate(progress['exercises']):
         
         # Notes
         notes = st.text_area(
-            "Exercise Notes",
+            "Notas do Exercício",
             value=exercise_progress['notes'],
-            placeholder="Add notes about this exercise (e.g., 'Felt strong', 'Struggled with last set', etc.)",
+            placeholder="Adicione notas sobre este exercício (ex: 'Senti-me forte', 'Dificuldade na última série', etc.)",
             key=f"notes_{session_idx}_{idx}"
         )
         progress['exercises'][idx]['notes'] = notes
@@ -205,40 +207,40 @@ for idx, exercise_progress in enumerate(progress['exercises']):
 st.divider()
 
 # Session completion
-st.subheader("Session Summary")
+st.subheader("Resumo da Sessão")
 
 col_summary1, col_summary2, col_summary3, col_summary4 = st.columns(4)
 
 with col_summary1:
     completed = len([e for e in progress['exercises'] if e['status'] == 'completed'])
-    st.metric("Completed", f"{completed}/{len(progress['exercises'])}")
+    st.metric("Completos", f"{completed}/{len(progress['exercises'])}")
 
 with col_summary2:
     failed = len([e for e in progress['exercises'] if e['status'] == 'failed'])
-    st.metric("Failed", failed)
+    st.metric("Falhados", failed)
 
 with col_summary3:
     skipped = len([e for e in progress['exercises'] if e['status'] == 'skipped'])
-    st.metric("Skipped", skipped)
+    st.metric("Saltados", skipped)
 
 with col_summary4:
     pending = len([e for e in progress['exercises'] if e['status'] == 'pending'])
-    st.metric("Pending", pending)
+    st.metric("Pendentes", pending)
 
 # Final notes
-st.text_area("Session Notes", 
-            placeholder="Overall session feedback, how the athlete felt, any observations...",
+st.text_area("Notas da Sessão", 
+            placeholder="Feedback geral da sessão, como o atleta se sentiu, observações...",
             key=f"session_notes_{session_idx}")
 
 # Action buttons
 col_action1, col_action2, col_action3 = st.columns(3)
 
 with col_action1:
-    if st.button("💾 Save Progress", type="secondary", use_container_width=True):
-        st.success("✅ Progress saved!")
+    if st.button("💾 Guardar Progresso", type="secondary", use_container_width=True):
+        st.success("✅ Progresso guardado!")
 
 with col_action2:
-    if st.button("🏁 Complete Session", type="primary", use_container_width=True):
+    if st.button("🏁 Completar Sessão", type="primary", use_container_width=True):
         # Update session with actual data
         st.session_state.training_sessions[session_idx]['status'] = 'Completed'
         st.session_state.training_sessions[session_idx]['completed_data'] = progress
@@ -255,18 +257,18 @@ with col_action2:
             ex['exercise_notes'] = ex_progress['notes']
         
         st.session_state.active_session = None
-        st.success("🎉 Session completed successfully!")
+        st.success("🎉 Sessão completada com sucesso!")
         st.balloons()
-        st.info("Redirecting to calendar...")
+        st.info("A redirecionar para o calendário...")
         st.rerun()
 
 with col_action3:
-    if st.button("❌ Cancel Session", use_container_width=True):
+    if st.button("❌ Cancelar Sessão", use_container_width=True):
         if st.session_state.get('confirm_cancel'):
             st.session_state.active_session = None
             st.session_state.pop('confirm_cancel', None)
-            st.warning("Session cancelled. Progress not saved.")
+            st.warning("Sessão cancelada. Progresso não guardado.")
             st.rerun()
         else:
             st.session_state.confirm_cancel = True
-            st.warning("⚠️ Click again to confirm cancellation (progress will be lost)")
+            st.warning("⚠️ Clique novamente para confirmar cancelamento (o progresso será perdido)")
