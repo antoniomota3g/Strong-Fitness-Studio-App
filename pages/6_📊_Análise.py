@@ -1,34 +1,36 @@
 import streamlit as st
-from datetime import date, datetime
+from datetime import date
 import pandas as pd
 from collections import defaultdict
+import altair as alt
 from utils import add_logo
+import database as db
 
 add_logo()
 
 st.set_page_config(page_title="Análise de Sessões de Treino", page_icon="📊", layout="wide")
+
+# Initialize database
+if 'db_initialized' not in st.session_state:
+    db.init_database()
+    st.session_state.db_initialized = True
     
 st.markdown("# 📊 Análise de Performance do Atleta")
 
-# Initialize session state
-if 'athletes' not in st.session_state:
-    st.session_state.athletes = []
-if 'training_sessions' not in st.session_state:
-    st.session_state.training_sessions = []
-if 'exercises' not in st.session_state:
-    st.session_state.exercises = []
-if 'evaluations' not in st.session_state:
-    st.session_state.evaluations = []
+# Load data from database
+athletes = db.get_all_athletes()
+training_sessions = db.get_all_training_sessions()
+evaluations = db.get_all_evaluations()
 
 # Check if there are completed sessions
-completed_sessions = [s for s in st.session_state.training_sessions 
-                     if s['status'] == 'Completed' and 'completed_data' in s]
+completed_sessions = [s for s in training_sessions 
+                     if s['status'] == 'Completed' and s.get('completed_data')]
 
-if not st.session_state.athletes:
+if not athletes:
     st.warning("⚠️ Ainda não há atletas registados. Por favor registe atletas primeiro na página de Atletas.")
     st.stop()
 
-if not completed_sessions and not st.session_state.evaluations:
+if not completed_sessions and not evaluations:
     st.warning("⚠️ Ainda não há sessões de treino completas nem avaliações. Complete algumas sessões ou adicione avaliações para ver analíticas.")
     st.stop()
 
@@ -36,12 +38,19 @@ st.write("Acompanhe a performance do atleta, progresso de treino e composição 
 
 # Athlete selection
 st.subheader("Selecionar Atleta")
-athlete_options = [f"{a['first_name']} {a['last_name']}" for a in st.session_state.athletes]
+athlete_options = [f"{a['first_name']} {a['last_name']}" for a in athletes]
 selected_athlete_name = st.selectbox("Atleta", athlete_options)
 
+# Find athlete ID
+selected_athlete_id = None
+for a in athletes:
+    if f"{a['first_name']} {a['last_name']}" == selected_athlete_name:
+        selected_athlete_id = a['id']
+        break
+
 # Filter sessions and evaluations for selected athlete
-athlete_sessions = [s for s in completed_sessions if s['athlete_name'] == selected_athlete_name]
-athlete_evaluations = [e for e in st.session_state.evaluations if e['athlete_name'] == selected_athlete_name]
+athlete_sessions = [s for s in completed_sessions if s['athlete_id'] == selected_athlete_id]
+athlete_evaluations = [e for e in evaluations if e['athlete_id'] == selected_athlete_id]
 
 # Sort by date
 athlete_sessions.sort(key=lambda x: (x['session_date'], x['session_time']))
@@ -108,7 +117,7 @@ if athlete_sessions:
                                 )
                             else:
                                 metric_data[session_date][metric_name] = weight_val
-                    except:
+                    except Exception:
                         pass
                 
                 # Calculate volume (sets × reps)
@@ -128,7 +137,7 @@ if athlete_sessions:
                         )
                     else:
                         metric_data[session_date][metric_name] = volume
-                except:
+                except Exception:
                     pass
 
 if not available_metrics:
@@ -147,18 +156,43 @@ else:
         
         chart_data = []
         for date in all_dates:
-            # Convert to date string to avoid time display
-            date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
-            row = {'Date': date_str}
+            # Keep as real datetime for a continuous time axis
+            row = {'Date': pd.to_datetime(date)}
             for metric in selected_metrics:
                 row[metric] = metric_data[date].get(metric, None)
             chart_data.append(row)
         
         chart_df = pd.DataFrame(chart_data)
-        chart_df = chart_df.set_index('Date')
-        
-        # Display line chart
-        st.line_chart(chart_df, height=500)
+
+        # Plot in long format so each metric can ignore missing days independently.
+        long_df = chart_df.melt(id_vars=['Date'], var_name='Metric', value_name='Value')
+        long_df['Value'] = pd.to_numeric(long_df['Value'], errors='coerce')
+        long_df = long_df.dropna(subset=['Value'])
+
+        if long_df.empty:
+            st.info("Sem dados numéricos suficientes para desenhar o gráfico.")
+        else:
+            chart = (
+                alt.Chart(long_df)
+                .mark_line(point=True)
+                .encode(
+                    x=alt.X(
+                        'Date:T',
+                        title='Data',
+                        axis=alt.Axis(format='%Y-%m-%d', labelAngle=-45),
+                    ),
+                    y=alt.Y('Value:Q', title='Valor'),
+                    color=alt.Color('Metric:N', title='Métrica'),
+                    tooltip=[
+                        alt.Tooltip('Date:T', title='Data', format='%Y-%m-%d'),
+                        alt.Tooltip('Metric:N', title='Métrica'),
+                        alt.Tooltip('Value:Q', title='Valor'),
+                    ],
+                )
+                .properties(height=500)
+            )
+
+            st.altair_chart(chart, use_container_width=True)
         
         # Show metrics summary
         st.divider()
@@ -189,4 +223,6 @@ st.divider()
 if selected_metrics and metric_data:
     with st.expander("📋 Ver Tabela de Dados"):
         table_df = pd.DataFrame(chart_data)
+        if 'Date' in table_df.columns:
+            table_df['Date'] = pd.to_datetime(table_df['Date']).dt.strftime('%Y-%m-%d')
         st.dataframe(table_df, hide_index=True, use_container_width=True)

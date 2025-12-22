@@ -2,6 +2,7 @@ import streamlit as st
 from PIL import Image
 from pathlib import Path
 import base64
+from datetime import date, datetime
 
 
 def add_logo():
@@ -27,3 +28,26 @@ def add_logo():
         """,
         unsafe_allow_html=True,
     )
+
+
+def format_day(value):
+    """Format date/datetime values as date-only (YYYY-MM-DD)."""
+    if value is None or value == "":
+        return "N/A"
+
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+
+    if isinstance(value, date):
+        return value.isoformat()
+
+    if isinstance(value, str):
+        # Common DB string representations: 'YYYY-MM-DD ...'
+        if len(value) >= 10 and value[4] == "-" and value[7] == "-":
+            return value[:10]
+        try:
+            return datetime.fromisoformat(value).date().isoformat()
+        except Exception:
+            return value
+
+    return str(value)

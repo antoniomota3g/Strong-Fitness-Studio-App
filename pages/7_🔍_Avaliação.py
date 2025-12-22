@@ -2,21 +2,25 @@ import streamlit as st
 from datetime import date, datetime
 import pandas as pd
 from utils import add_logo
+import database as db
 
 add_logo()
 
 st.set_page_config(page_title="Avaliação de Atleta", page_icon="🔍", layout="wide")
+
+# Initialize database
+if 'db_initialized' not in st.session_state:
+    db.init_database()
+    st.session_state.db_initialized = True
     
 st.markdown("# 🔍 Avaliação do Atleta")
 
-# Initialize session state
-if 'athletes' not in st.session_state:
-    st.session_state.athletes = []
-if 'evaluations' not in st.session_state:
-    st.session_state.evaluations = []
+# Load data from database
+athletes = db.get_all_athletes()
+evaluations = db.get_all_evaluations()
 
 # Check if there are athletes
-if not st.session_state.athletes:
+if not athletes:
     st.warning("⚠️ Ainda não há atletas registados. Por favor registe atletas primeiro na página de Atletas.")
     st.stop()
 
@@ -31,7 +35,7 @@ with st.form("evaluation_form"):
     with col1:
         # Select athlete
         athlete_options = [f"{a['first_name']} {a['last_name']}" 
-                          for a in st.session_state.athletes]
+                          for a in athletes]
         selected_athlete_idx = st.selectbox("Selecionar Atleta*", 
                                            range(len(athlete_options)),
                                            format_func=lambda x: athlete_options[x])
@@ -84,28 +88,28 @@ with st.form("evaluation_form"):
     
     if submitted:
         # Create evaluation record
+        athlete = athletes[selected_athlete_idx]
         evaluation = {
-            "athlete_idx": selected_athlete_idx,
-            "athlete_name": f"{st.session_state.athletes[selected_athlete_idx]['first_name']} {st.session_state.athletes[selected_athlete_idx]['last_name']}",
-            "evaluation_date": evaluation_date,
+            "athlete_id": athlete['id'],
+            "evaluation_date": str(evaluation_date),
             "weight": weight,
             "muscle_percentage": muscle_percentage,
             "fat_percentage": fat_percentage,
             "bone_percentage": bone_percentage,
             "water_percentage": water_percentage,
-            "notes": notes,
-            "created_date": date.today()
+            "notes": notes
         }
         
-        # Add to session state
-        st.session_state.evaluations.append(evaluation)
-        st.success(f"✅ Avaliação de {evaluation['athlete_name']} guardada com sucesso!")
+        # Add to database
+        db.add_evaluation(evaluation)
+        st.success(f"✅ Avaliação de {athlete['first_name']} {athlete['last_name']} guardada com sucesso!")
         st.balloons()
+        st.rerun()
 
 # Display evaluations
-if st.session_state.evaluations:
+if evaluations:
     st.divider()
-    st.subheader(f"📊 Histórico de Avaliações ({len(st.session_state.evaluations)})")
+    st.subheader(f"📊 Histórico de Avaliações ({len(evaluations)})")
     
     # Filter by athlete
     filter_athlete = st.selectbox("Filtrar por Atleta", 
@@ -113,9 +117,16 @@ if st.session_state.evaluations:
                                  key="filter_eval_athlete")
     
     # Apply filter
-    filtered_evals = st.session_state.evaluations
+    filtered_evals = evaluations
     if filter_athlete != "Todos os Atletas":
-        filtered_evals = [e for e in filtered_evals if e['athlete_name'] == filter_athlete]
+        # Find athlete ID by name
+        athlete_id_filter = None
+        for a in athletes:
+            if f"{a['first_name']} {a['last_name']}" == filter_athlete:
+                athlete_id_filter = a['id']
+                break
+        if athlete_id_filter:
+            filtered_evals = [e for e in filtered_evals if e['athlete_id'] == athlete_id_filter]
     
     # Sort by date (newest first)
     filtered_evals = sorted(filtered_evals, key=lambda x: x['evaluation_date'], reverse=True)
@@ -123,12 +134,21 @@ if st.session_state.evaluations:
     st.write(f"A mostrar {len(filtered_evals)} avaliação/avaliações")
     
     # Display evaluations
-    for idx, evaluation in enumerate(st.session_state.evaluations):
-        # Skip if filtered out
-        if evaluation not in filtered_evals:
-            continue
+    for evaluation in filtered_evals:
+        # Get athlete name from database
+        athlete_name = "Unknown"
+        for a in athletes:
+            if a['id'] == evaluation['athlete_id']:
+                athlete_name = f"{a['first_name']} {a['last_name']}"
+                break
         
-        with st.expander(f"📅 {evaluation['athlete_name']} - {evaluation['evaluation_date'].strftime('%d de %B, %Y')}"):
+        # Parse evaluation_date if it's a string
+        eval_date = evaluation['evaluation_date']
+        if isinstance(eval_date, str):
+            from datetime import datetime as dt
+            eval_date = dt.strptime(eval_date, '%Y-%m-%d').date()
+        
+        with st.expander(f"📅 {athlete_name} - {eval_date.strftime('%d de %B, %Y')}"):
             col_e1, col_e2, col_e3 = st.columns(3)
             
             with col_e1:
@@ -142,13 +162,13 @@ if st.session_state.evaluations:
                 st.metric("Osso", f"{evaluation['bone_percentage']}%")
                 st.metric("Água", f"{evaluation['water_percentage']}%")
 
-            if evaluation['notes']:
+            if evaluation.get('notes'):
                 st.markdown("#### Notas")
                 st.info(evaluation['notes'])
             
             # Delete button
-            if st.button(f"Eliminar Avaliação", key=f"delete_eval_{idx}"):
-                st.session_state.evaluations.pop(idx)
+            if st.button(f"Eliminar Avaliação", key=f"delete_eval_{evaluation['id']}"):
+                db.delete_evaluation(evaluation['id'])
                 st.rerun()
     
     st.divider()
@@ -157,8 +177,15 @@ if st.session_state.evaluations:
     if filter_athlete != "Todos os Atletas":
         st.subheader(f"📈 Acompanhamento de Progresso - {filter_athlete}")
         
-        athlete_evals = [e for e in st.session_state.evaluations 
-                        if e['athlete_name'] == filter_athlete]
+        # Find athlete ID
+        athlete_id_filter = None
+        for a in athletes:
+            if f"{a['first_name']} {a['last_name']}" == filter_athlete:
+                athlete_id_filter = a['id']
+                break
+        
+        athlete_evals = [e for e in evaluations 
+                        if e['athlete_id'] == athlete_id_filter]
         athlete_evals.sort(key=lambda x: x['evaluation_date'])
         
         if len(athlete_evals) >= 2:
@@ -207,8 +234,3 @@ if st.session_state.evaluations:
             st.dataframe(comparison_df, hide_index=True, use_container_width=True)
         else:
             st.info("É necessário pelo menos 2 avaliações para mostrar o acompanhamento de progresso.")
-    
-    # Clear all button
-    if st.button("Limpar Todas as Avaliações", type="secondary"):
-        st.session_state.evaluations = []
-        st.rerun()
