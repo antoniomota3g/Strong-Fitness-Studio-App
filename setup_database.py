@@ -4,27 +4,40 @@ Database setup script for Strong Fitness Studio
 Run this script to create the PostgreSQL database and tables
 """
 
+import os
+
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-# Configuration
-DB_NAME = "strong_fitness_studio_app"
-DB_USER = "strong_fitness_studio_app_user"
-DB_PASSWORD = "N3XLkrv2bbyBugsuOnIql2CpBEFXcZCG"
-DB_HOST = "dpg-d4ujqkmr433s73dlk2rg-a.frankfurt-postgres.render.com"
-DB_PORT = 5432
+def _get_db_admin_connection_params():
+    """Get connection params for creating the database.
+
+    Prefers DATABASE_URL_ADMIN (recommended for managed Postgres), otherwise uses
+    DB_* env vars. If neither are set, defaults to local Postgres.
+    """
+    database_url_admin = os.environ.get("DATABASE_URL_ADMIN")
+    if database_url_admin:
+        return {"DATABASE_URL_ADMIN": database_url_admin}
+
+    return {
+        "dbname": os.environ.get("DB_ADMIN_DB", "postgres"),
+        "user": os.environ.get("DB_USER", "postgres"),
+        "password": os.environ.get("DB_PASSWORD", "postgres"),
+        "host": os.environ.get("DB_HOST", "localhost"),
+        "port": int(os.environ.get("DB_PORT", "5432")),
+    }
+
+
+DB_NAME = os.environ.get("DB_NAME", "strong_fitness_studio_app")
 
 def create_database():
     """Create the fitness_studio database if it doesn't exist"""
     try:
-        # Connect to default postgres database
-        conn = psycopg2.connect(
-            dbname="postgres",
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT
-        )
+        params = _get_db_admin_connection_params()
+        if "DATABASE_URL_ADMIN" in params:
+            conn = psycopg2.connect(params["DATABASE_URL_ADMIN"])
+        else:
+            conn = psycopg2.connect(**params)
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cur = conn.cursor()
         
@@ -78,5 +91,5 @@ if __name__ == "__main__":
         print("\n❌ Setup failed. Please check your PostgreSQL configuration.")
         print("\n💡 Make sure:")
         print("   - PostgreSQL is running")
-        print("   - Database credentials are correct in setup_database.py")
+        print("   - Database credentials are set via env vars (DB_HOST/DB_NAME/DB_USER/DB_PASSWORD) or DATABASE_URL_ADMIN")
         print("   - You have permission to create databases")

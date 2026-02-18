@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: joana-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: strong_fitness_studio_app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - joana_pgdata:/var/lib/postgresql/data
+
+volumes:
+  joana_pgdata:

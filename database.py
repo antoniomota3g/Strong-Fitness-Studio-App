@@ -3,6 +3,7 @@ from psycopg2.extras import RealDictCursor
 import streamlit as st
 from datetime import date, datetime, time
 import json
+import os
 
 
 def _json_default(value):
@@ -14,20 +15,88 @@ def _json_default(value):
 def _json_dumps(value):
     return json.dumps(value, default=_json_default) if value is not None else None
 
-# Database connection configuration
-DB_CONFIG = {
-    "host": "dpg-d4ujqkmr433s73dlk2rg-a.frankfurt-postgres.render.com",
-    "database": "strong_fitness_studio_app",
-    "user": "strong_fitness_studio_app_user",
-    "password": "N3XLkrv2bbyBugsuOnIql2CpBEFXcZCG",
-    "port": 5432,
-}
+def _load_db_config_from_env():
+    """Load DB config from environment variables.
+
+    Prefer DATABASE_URL, otherwise fall back to individual vars.
+    """
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        return {"DATABASE_URL": database_url}
+
+    host = os.environ.get("DB_HOST")
+    dbname = os.environ.get("DB_NAME")
+    user = os.environ.get("DB_USER")
+    password = os.environ.get("DB_PASSWORD")
+    port = os.environ.get("DB_PORT")
+    if host and dbname and user and password:
+        return {
+            "host": host,
+            "database": dbname,
+            "user": user,
+            "password": password,
+            "port": int(port) if port else 5432,
+        }
+
+    return None
+
+
+def _load_db_config_from_streamlit_secrets():
+    """Load DB config from Streamlit secrets.
+
+    Supports either:
+    - st.secrets["DATABASE_URL"]
+    - st.secrets["DB_CONFIG"] (mapping with host/database/user/password/port)
+    """
+    try:
+        secrets = st.secrets
+    except Exception:
+        return None
+
+    try:
+        database_url = secrets.get("DATABASE_URL")
+        if database_url:
+            return {"DATABASE_URL": database_url}
+        db_config = secrets.get("DB_CONFIG")
+        if db_config:
+            return dict(db_config)
+    except Exception:
+        return None
+
+    return None
+
+
+def get_db_config():
+    """Get DB config from env/secrets.
+
+    Returns either {"DATABASE_URL": ...} or a psycopg2 kwargs dict.
+    """
+    cfg = _load_db_config_from_env()
+    if cfg:
+        return cfg
+
+    cfg = _load_db_config_from_streamlit_secrets()
+    if cfg:
+        return cfg
+
+    # Safe local default (no secrets in repo)
+    return {
+        "host": "localhost",
+        "database": "strong_fitness_studio_app",
+        "user": "postgres",
+        "password": "postgres",
+        "port": 5432,
+    }
 
 
 def get_connection():
     """Get database connection"""
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        cfg = get_db_config()
+        if "DATABASE_URL" in cfg:
+            conn = psycopg2.connect(cfg["DATABASE_URL"])
+        else:
+            conn = psycopg2.connect(**cfg)
         return conn
     except Exception as e:
         st.error(f"Database connection error: {e}")
@@ -63,6 +132,12 @@ def init_database():
             )
         """
         )
+
+        # Billing fields on athletes (added via ALTER TABLE for existing DBs)
+        cur.execute("ALTER TABLE athletes ADD COLUMN IF NOT EXISTS plan_type VARCHAR(20) DEFAULT 'monthly'")
+        cur.execute("ALTER TABLE athletes ADD COLUMN IF NOT EXISTS plan_sessions_per_week INTEGER")
+        cur.execute("ALTER TABLE athletes ADD COLUMN IF NOT EXISTS plan_monthly_price DECIMAL(10,2)")
+        cur.execute("ALTER TABLE athletes ADD COLUMN IF NOT EXISTS plan_on_demand_price DECIMAL(10,2)")
 
         # Exercises table
         cur.execute(
@@ -117,6 +192,37 @@ def init_database():
                 water_percentage DECIMAL(5,2),
                 notes TEXT,
                 created_date DATE DEFAULT CURRENT_DATE
+            )
+        """
+        )
+
+        # Payments summary (one row per athlete per month)
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS payments (
+                id SERIAL PRIMARY KEY,
+                athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE,
+                month DATE NOT NULL,
+                status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                paid_amount DECIMAL(10,2),
+                paid_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (athlete_id, month)
+            )
+        """
+        )
+
+        # Payment adjustments (credits/debits) applied to a month
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS payment_adjustments (
+                id SERIAL PRIMARY KEY,
+                athlete_id INTEGER REFERENCES athletes(id) ON DELETE CASCADE,
+                applies_month DATE NOT NULL,
+                amount DECIMAL(10,2) NOT NULL,
+                reason TEXT,
+                related_session_id INTEGER REFERENCES training_sessions(id) ON DELETE SET NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """
         )

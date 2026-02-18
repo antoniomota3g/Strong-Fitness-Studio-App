@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/queryClient.ts","./src/theme.ts","./src/vite-env.d.ts","./src/api/athletes.ts","./src/api/client.ts","./src/api/evaluations.ts","./src/api/exercises.ts","./src/api/trainingSessions.ts","./src/pages/AthletesPage.tsx","./src/pages/EvaluationsPage.tsx","./src/pages/ExercisesPage.tsx","./src/pages/SessionsPage.tsx"],"version":"5.9.3"}

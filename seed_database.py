@@ -41,7 +41,7 @@ def _json_dumps(value: Any) -> str:
 
 
 def _connect():
-    """Connect using DATABASE_URL if set; otherwise fall back to database.DB_CONFIG."""
+    """Connect using DATABASE_URL if set; otherwise fall back to database.get_db_config()."""
     database_url = os.environ.get("DATABASE_URL")
     if database_url:
         return psycopg2.connect(database_url)
@@ -49,7 +49,10 @@ def _connect():
     # Fallback to app config
     import database as app_db
 
-    return psycopg2.connect(**app_db.DB_CONFIG)
+    cfg = app_db.get_db_config()
+    if "DATABASE_URL" in cfg:
+        return psycopg2.connect(cfg["DATABASE_URL"])
+    return psycopg2.connect(**cfg)
 
 
 @dataclass(frozen=True)
