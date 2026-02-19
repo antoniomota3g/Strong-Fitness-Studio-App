@@ -169,7 +169,7 @@ export function AthletesPage() {
     setFitnessLevel(a.fitness_level ?? '')
     setGoals(Array.isArray(a.goals) ? a.goals.filter(Boolean) : [])
     setMedicalConditions(a.medical_conditions ?? '')
-    setNotes('')
+    setNotes(a.notes ?? '')
     setSubmitAttempted(false)
 
     setAddOpen(true)
@@ -259,8 +259,7 @@ export function AthletesPage() {
       fitness_level: fitnessLevel || null,
       goals: goals.length > 0 ? goals : null,
       medical_conditions: medicalConditions.trim() || null,
-      // Note: Streamlit shows "Notas Adicionais" but it was not saved in DB previously.
-      // Keeping it in the UI for parity without persisting it yet.
+      notes: notes.trim() || null,
     }
   }, [
     birthDate,
@@ -273,6 +272,7 @@ export function AthletesPage() {
     height,
     lastName,
     medicalConditions,
+    notes,
     phone,
     weight
   ])
@@ -516,6 +516,17 @@ export function AthletesPage() {
                           </Stack>
                         ) : null}
 
+                        {a.notes ? (
+                          <Stack spacing={0.5}>
+                            <Typography variant="subtitle2" fontWeight={800}>
+                              Notas Adicionais
+                            </Typography>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                              {a.notes}
+                            </Typography>
+                          </Stack>
+                        ) : null}
+
                         <Stack direction="row" justifyContent="flex-end" spacing={1}>
                           <Button
                             startIcon={<EditIcon />}
@@ -702,7 +713,7 @@ export function AthletesPage() {
               multiline
               minRows={2}
               placeholder="Qualquer outra informação relevante..."
-              helperText="(Ainda não guardamos estas notas na BD — igual ao Streamlit anterior.)"
+
             />
 
             {createMutation.isError && formMode === 'create' ? <Alert severity="error">Falha ao registar atleta.</Alert> : null}

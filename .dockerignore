@@ -1,0 +1,14 @@
+# Dockerfile build
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+.git
+.gitignore
+.vscode/
+frontend/
+node_modules/
+*.md
+docker-compose.yml
+seed_database.py

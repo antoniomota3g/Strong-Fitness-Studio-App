@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: strong-fitness-api
+    runtime: docker
+    repo: https://github.com/YOUR_USERNAME/Strong-Fitness-Studio-App
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # Set manually in Render dashboard (Neon connection string)
+      - key: CORS_ORIGINS
+        sync: false  # Set to your Vercel frontend URL, e.g. https://strong-fitness.vercel.app

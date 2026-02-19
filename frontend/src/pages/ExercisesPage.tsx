@@ -153,7 +153,6 @@ export function ExercisesPage() {
   const [instructions, setInstructions] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
 
-  // Present in Streamlit UI but not persisted previously.
   const [exerciseType, setExerciseType] = useState<string>('')
   const [setsRange, setSetsRange] = useState('')
   const [repsRange, setRepsRange] = useState('')
@@ -201,11 +200,10 @@ export function ExercisesPage() {
     setInstructions(e.instructions ?? '')
     setVideoUrl(e.video_url ?? '')
 
-    // Non-persisted fields (keep empty for now)
-    setExerciseType('')
-    setSetsRange('')
-    setRepsRange('')
-    setTips('')
+    setExerciseType(e.exercise_type ?? '')
+    setSetsRange(e.sets_range ?? '')
+    setRepsRange(e.reps_range ?? '')
+    setTips(e.tips ?? '')
 
     setSubmitAttempted(false)
     setAddOpen(true)
@@ -294,11 +292,15 @@ export function ExercisesPage() {
       difficulty: difficulty || null,
       muscle_groups: joinCsv(muscleGroups) || null,
       equipment: joinCsv(equipment) || null,
+      exercise_type: exerciseType || null,
+      sets_range: setsRange.trim() || null,
+      reps_range: repsRange.trim() || null,
       description: description.trim() || null,
       instructions: instructions.trim() || null,
+      tips: tips.trim() || null,
       video_url: videoUrl.trim() || null
     }
-  }, [canSubmit, category, description, difficulty, equipment, instructions, muscleGroups, name, videoUrl])
+  }, [canSubmit, category, description, difficulty, equipment, exerciseType, instructions, muscleGroups, name, repsRange, setsRange, tips, videoUrl])
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -674,7 +676,6 @@ export function ExercisesPage() {
                 value={exerciseType}
                 onChange={(e) => setExerciseType(e.target.value)}
                 fullWidth
-                helperText="(Campo ainda não guardado na BD, igual ao Streamlit anterior.)"
               >
                 <MenuItem value="">Escolha uma opção</MenuItem>
                 <MenuItem value="Composto">Composto</MenuItem>
@@ -688,7 +689,6 @@ export function ExercisesPage() {
                 onChange={(e) => setSetsRange(e.target.value)}
                 fullWidth
                 placeholder="ex: 3"
-                helperText="(Campo ainda não guardado na BD, igual ao Streamlit anterior.)"
               />
               <TextField
                 label="Repetições Recomendadas"
@@ -696,7 +696,6 @@ export function ExercisesPage() {
                 onChange={(e) => setRepsRange(e.target.value)}
                 fullWidth
                 placeholder="ex: 10"
-                helperText="(Campo ainda não guardado na BD, igual ao Streamlit anterior.)"
               />
             </Stack>
 
@@ -732,7 +731,6 @@ export function ExercisesPage() {
               multiline
               minRows={2}
               placeholder="Dicas importantes e erros comuns a evitar..."
-              helperText="(Campo ainda não guardado na BD, igual ao Streamlit anterior.)"
             />
 
             <TextField

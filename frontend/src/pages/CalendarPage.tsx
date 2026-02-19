@@ -124,7 +124,7 @@ function statusLabel(status: string | null | undefined) {
   return status ? String(status) : '—'
 }
 
-function statusChipColor(status: string | null | undefined): 'default' | 'success' | 'warning' | 'info' {
+function statusChipColor(status: string | null | undefined): 'default' | 'success' | 'warning' | 'info' | 'error' {
   if (status === 'Completed') return 'success'
   if (status === 'Cancelled') return 'error'
   if (status === 'Scheduled') return 'info'

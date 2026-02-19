@@ -46,9 +46,9 @@ def create_athlete(payload: AthleteCreate):
         """
         INSERT INTO athletes (
             first_name, last_name, email, phone, birth_date,
-            gender, weight, height, fitness_level, goals, medical_conditions
+            gender, weight, height, fitness_level, goals, medical_conditions, notes
         )
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         RETURNING id
         """,
         (
@@ -63,6 +63,7 @@ def create_athlete(payload: AthleteCreate):
             payload.fitness_level,
             _goals_to_text(payload.goals),
             payload.medical_conditions,
+            payload.notes,
         ),
     )
     return {"id": athlete_id}
@@ -105,6 +106,7 @@ def update_athlete(athlete_id: int, payload: AthleteUpdate):
             "height",
             "fitness_level",
             "medical_conditions",
+            "notes",
             "plan_type",
             "plan_sessions_per_week",
             "plan_monthly_price",

@@ -5,7 +5,6 @@ from fastapi import APIRouter, HTTPException
 from backend import db
 from backend.schemas import Exercise, ExerciseCreate, ExerciseUpdate, IdResponse
 
-
 router = APIRouter()
 
 
@@ -20,9 +19,10 @@ def create_exercise(payload: ExerciseCreate):
         """
         INSERT INTO exercises (
             name, category, muscle_groups, equipment,
-            difficulty, description, instructions, video_url
+            difficulty, exercise_type, sets_range, reps_range,
+            description, instructions, tips, video_url
         )
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         RETURNING id
         """,
         (
@@ -31,8 +31,12 @@ def create_exercise(payload: ExerciseCreate):
             payload.muscle_groups,
             payload.equipment,
             payload.difficulty,
+            payload.exercise_type,
+            payload.sets_range,
+            payload.reps_range,
             payload.description,
             payload.instructions,
+            payload.tips,
             payload.video_url,
         ),
     )
@@ -60,8 +64,12 @@ def update_exercise(exercise_id: int, payload: ExerciseUpdate):
         "muscle_groups",
         "equipment",
         "difficulty",
+        "exercise_type",
+        "sets_range",
+        "reps_range",
         "description",
         "instructions",
+        "tips",
         "video_url",
     }
 
@@ -79,5 +87,7 @@ def update_exercise(exercise_id: int, payload: ExerciseUpdate):
         return {"updated": False}
 
     params.append(exercise_id)
-    db.execute(f"UPDATE exercises SET {', '.join(set_clauses)} WHERE id = %s", tuple(params))
+    db.execute(
+        f"UPDATE exercises SET {', '.join(set_clauses)} WHERE id = %s", tuple(params)
+    )
     return {"updated": True}

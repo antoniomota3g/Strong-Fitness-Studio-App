@@ -44,6 +44,11 @@ DDL = [
         fitness_level VARCHAR(50),
         goals TEXT,
         medical_conditions TEXT,
+        notes TEXT,
+        plan_type VARCHAR(20) DEFAULT 'monthly',
+        plan_sessions_per_week INTEGER,
+        plan_monthly_price DECIMAL(10,2),
+        plan_on_demand_price DECIMAL(10,2),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """,
@@ -55,8 +60,12 @@ DDL = [
         muscle_groups TEXT,
         equipment TEXT,
         difficulty VARCHAR(50),
+        exercise_type VARCHAR(50),
+        sets_range VARCHAR(50),
+        reps_range VARCHAR(50),
         description TEXT,
         instructions TEXT,
+        tips TEXT,
         video_url VARCHAR(500),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -94,6 +103,20 @@ DDL = [
     """,
 ]
 
+# Migrations for existing databases — adds columns that were introduced after
+# the initial CREATE TABLE. Safe to run repeatedly (IF NOT EXISTS).
+MIGRATIONS = [
+    "ALTER TABLE athletes ADD COLUMN IF NOT EXISTS notes TEXT",
+    "ALTER TABLE athletes ADD COLUMN IF NOT EXISTS plan_type VARCHAR(20) DEFAULT 'monthly'",
+    "ALTER TABLE athletes ADD COLUMN IF NOT EXISTS plan_sessions_per_week INTEGER",
+    "ALTER TABLE athletes ADD COLUMN IF NOT EXISTS plan_monthly_price DECIMAL(10,2)",
+    "ALTER TABLE athletes ADD COLUMN IF NOT EXISTS plan_on_demand_price DECIMAL(10,2)",
+    "ALTER TABLE exercises ADD COLUMN IF NOT EXISTS exercise_type VARCHAR(50)",
+    "ALTER TABLE exercises ADD COLUMN IF NOT EXISTS sets_range VARCHAR(50)",
+    "ALTER TABLE exercises ADD COLUMN IF NOT EXISTS reps_range VARCHAR(50)",
+    "ALTER TABLE exercises ADD COLUMN IF NOT EXISTS tips TEXT",
+]
+
 
 def main() -> int:
     database_url = _get_database_url()
@@ -104,6 +127,8 @@ def main() -> int:
         with conn:
             with conn.cursor() as cur:
                 for stmt in DDL:
+                    cur.execute(stmt)
+                for stmt in MIGRATIONS:
                     cur.execute(stmt)
         print("✅ Tables are ready.")
         return 0

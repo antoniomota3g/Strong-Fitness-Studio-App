@@ -40,7 +40,7 @@ const NAV_ITEMS: Array<{ label: string; to: string }> = [
   { label: 'Treino', to: '/treino' },
   { label: 'Avaliações', to: '/evaluations' },
   { label: 'Análise', to: '/analysis' },
-  { label: 'Pagamentos', to: '/payments' }
+  // { label: 'Pagamentos', to: '/payments' }
 ]
 
 function isActivePath(pathname: string, to: string) {
@@ -216,7 +216,7 @@ export function App() {
             <Route path="/treino" element={<TreinoRunnerPage />} />
             <Route path="/evaluations" element={<EvaluationsPage />} />
             <Route path="/analysis" element={<AnalysisPage />} />
-            <Route path="/payments" element={<PaymentsPage />} />
+            {/* <Route path="/payments" element={<PaymentsPage />} /> */}
           </Routes>
         </Box>
       </Fade>

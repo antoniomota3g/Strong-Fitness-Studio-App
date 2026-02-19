@@ -7,8 +7,12 @@ export type Exercise = {
   muscle_groups?: string | null
   equipment?: string | null
   difficulty?: string | null
+  exercise_type?: string | null
+  sets_range?: string | null
+  reps_range?: string | null
   description?: string | null
   instructions?: string | null
+  tips?: string | null
   video_url?: string | null
   created_at?: string | null
 }

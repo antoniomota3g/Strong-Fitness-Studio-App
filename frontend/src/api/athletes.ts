@@ -13,6 +13,7 @@ export type Athlete = {
   fitness_level?: string | null
   goals?: string[] | null
   medical_conditions?: string | null
+  notes?: string | null
   created_at?: string | null
 }
 

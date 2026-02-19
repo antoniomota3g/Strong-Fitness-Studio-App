@@ -41,18 +41,14 @@ def _json_dumps(value: Any) -> str:
 
 
 def _connect():
-    """Connect using DATABASE_URL if set; otherwise fall back to database.get_db_config()."""
+    """Connect using DATABASE_URL env var."""
     database_url = os.environ.get("DATABASE_URL")
-    if database_url:
-        return psycopg2.connect(database_url)
-
-    # Fallback to app config
-    import database as app_db
-
-    cfg = app_db.get_db_config()
-    if "DATABASE_URL" in cfg:
-        return psycopg2.connect(cfg["DATABASE_URL"])
-    return psycopg2.connect(**cfg)
+    if not database_url:
+        raise RuntimeError(
+            "DATABASE_URL env var is required. "
+            "Example: DATABASE_URL=postgresql://postgres:postgres@localhost:5433/strong_fitness_studio_app"
+        )
+    return psycopg2.connect(database_url)
 
 
 @dataclass(frozen=True)
@@ -94,7 +90,7 @@ LAST_NAMES = [
     "Gomes",
 ]
 
-# Options mirrored from Streamlit forms so seeded values always match UI choices.
+# Options matching the frontend UI choices.
 ATHLETE_GENDERS = ["Masculino", "Feminino", "Outro"]
 ATHLETE_FITNESS_LEVELS = ["Iniciante", "Intermediário", "Avançado", "Profissional"]
 ATHLETE_GOALS = [
@@ -320,7 +316,9 @@ def _rand_email(first: str, last: str, rng: random.Random) -> str:
     return base.replace(" ", "") + "@example.com"
 
 
-def _make_planned_exercise(exercise_name: str, idx: int, rng: random.Random) -> dict[str, Any]:
+def _make_planned_exercise(
+    exercise_name: str, idx: int, rng: random.Random
+) -> dict[str, Any]:
     sets = rng.choice([3, 4, 5])
     reps = rng.choice(["8", "10", "12", "8-12", "10-12"])
     rest = rng.choice([60, 75, 90, 120])
@@ -364,12 +362,16 @@ def _with_actuals(planned: dict[str, Any], rng: random.Random) -> dict[str, Any]
     if status == "completed" and rng.random() < 0.30:
         updated["actual_reps"] = rng.choice([planned.get("reps"), "+1 rep", "-1 rep"])
     if status == "completed" and rng.random() < 0.25:
-        updated["actual_weight"] = rng.choice([planned_weight, "+2.5kg", "+5kg", "-2.5kg"])
+        updated["actual_weight"] = rng.choice(
+            [planned_weight, "+2.5kg", "+5kg", "-2.5kg"]
+        )
 
     return updated
 
 
-def _make_completed_progress(session_exercises: list[dict[str, Any]], started_at: datetime, rng: random.Random):
+def _make_completed_progress(
+    session_exercises: list[dict[str, Any]], started_at: datetime, rng: random.Random
+):
     exercises_progress = []
     for ex in session_exercises:
         planned_sets = ex.get("sets")
@@ -454,14 +456,13 @@ def main():
 
     rng = random.Random(cfg.seed)
 
-    # Ensure tables exist (same schema as app)
-    try:
-        import database as app_db
+    # Ensure tables exist (uses scripts/init_db DDL)
+    import sys
 
-        app_db.init_database()
-    except Exception:
-        # If init fails (e.g. streamlit not installed), seeding will likely fail anyway.
-        pass
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "scripts"))
+    from init_db import main as init_db_main
+
+    init_db_main()
 
     conn = _connect()
     try:
@@ -477,13 +478,15 @@ def main():
             weight = round(rng.uniform(55, 95), 1)
             height = round(rng.uniform(1.55, 1.95), 2)
             fitness_level = rng.choice(ATHLETE_FITNESS_LEVELS)
-            goals = rng.sample(ATHLETE_GOALS, k=rng.randint(1, min(3, len(ATHLETE_GOALS))))
+            goals = rng.sample(
+                ATHLETE_GOALS, k=rng.randint(1, min(3, len(ATHLETE_GOALS)))
+            )
 
             cur.execute(
                 """
                 INSERT INTO athletes (first_name, last_name, email, phone, birth_date, gender,
-                                    weight, height, fitness_level, goals, medical_conditions)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                                    weight, height, fitness_level, goals, medical_conditions, notes)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 RETURNING id
                 """,
                 (
@@ -498,6 +501,18 @@ def main():
                     fitness_level,
                     ", ".join(goals),
                     rng.choice(["", "Asma", "Dor lombar ocasional", ""]),
+                    rng.choice(
+                        [
+                            "",
+                            "",
+                            "Prefere treinar de manhã.",
+                            "Disponível apenas à noite.",
+                            "Vai de férias em agosto — pausar plano.",
+                            "Quer preparar-se para uma corrida de 10km.",
+                            "Começou recentemente, precisa de acompanhamento extra.",
+                            "Atleta muito motivado, pode aumentar intensidade.",
+                        ]
+                    ),
                 ),
             )
             athlete_ids.append(cur.fetchone()[0])
@@ -506,16 +521,24 @@ def main():
         # Insert only the curated standard catalog (no generic 'Exercício N' rows).
         base = EXERCISE_CATALOG.copy()
         rng.shuffle(base)
-        exercise_rows: list[tuple[str, str, str, str, str, str, str, str]] = []
+        exercise_rows: list[tuple[str, ...]] = []
 
         for item in base[: min(len(base), cfg.exercises)]:
             exercise_rows.append(
                 (
                     item["name"],
                     item["category"],
-                    ", ".join([m for m in item["muscles"] if m in EXERCISE_MUSCLE_GROUPS]),
-                    ", ".join([e for e in item["equipment"] if e in EXERCISE_EQUIPMENT]),
+                    ", ".join(
+                        [m for m in item["muscles"] if m in EXERCISE_MUSCLE_GROUPS]
+                    ),
+                    ", ".join(
+                        [e for e in item["equipment"] if e in EXERCISE_EQUIPMENT]
+                    ),
                     item["difficulty"],
+                    item.get("exercise_type", ""),
+                    "",
+                    "",
+                    "",
                     "",
                     "",
                     "",
@@ -525,8 +548,9 @@ def main():
         cur.executemany(
             """
             INSERT INTO exercises (name, category, muscle_groups, equipment, difficulty,
-                                 description, instructions, video_url)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                                 exercise_type, sets_range, reps_range,
+                                 description, instructions, tips, video_url)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             exercise_rows,
         )
@@ -583,16 +607,30 @@ def main():
             for i in range(cfg.completed_sessions_per_athlete):
                 days_ago = rng.randint(3, 60)
                 s_date = today - timedelta(days=days_ago)
-                s_time = time(hour=rng.choice([7, 8, 9, 18, 19, 20]), minute=rng.choice([0, 15, 30, 45]))
+                s_time = time(
+                    hour=rng.choice([7, 8, 9, 18, 19, 20]),
+                    minute=rng.choice([0, 15, 30, 45]),
+                )
 
-                selected_exercises = rng.sample(exercise_names, k=min(5, len(exercise_names)))
-                planned = [_make_planned_exercise(name, idx=j, rng=rng) for j, name in enumerate(selected_exercises)]
+                selected_exercises = rng.sample(
+                    exercise_names, k=min(5, len(exercise_names))
+                )
+                planned = [
+                    _make_planned_exercise(name, idx=j, rng=rng)
+                    for j, name in enumerate(selected_exercises)
+                ]
                 completed_exercises = [_with_actuals(ex, rng) for ex in planned]
 
-                started_at = datetime.combine(s_date, s_time) - timedelta(minutes=rng.randint(0, 10))
-                completed_at = datetime.combine(s_date, s_time) + timedelta(minutes=rng.randint(45, 75))
+                started_at = datetime.combine(s_date, s_time) - timedelta(
+                    minutes=rng.randint(0, 10)
+                )
+                completed_at = datetime.combine(s_date, s_time) + timedelta(
+                    minutes=rng.randint(45, 75)
+                )
 
-                progress = _make_completed_progress(completed_exercises, started_at=started_at, rng=rng)
+                progress = _make_completed_progress(
+                    completed_exercises, started_at=started_at, rng=rng
+                )
 
                 cur.execute(
                     """
@@ -605,12 +643,21 @@ def main():
                     """,
                     (
                         athlete_id,
-                        rng.choice(["Treino de Força", "Treino Full Body", "Treino Superior", "Treino Inferior"]),
+                        rng.choice(
+                            [
+                                "Treino de Força",
+                                "Treino Full Body",
+                                "Treino Superior",
+                                "Treino Inferior",
+                            ]
+                        ),
                         s_date,
                         s_time,
                         rng.choice([45, 60, 75]),
                         rng.choice(SESSION_TYPES),
-                        rng.choice(["", "Boa sessão.", "Fadiga alta.", "Foco em técnica."]),
+                        rng.choice(
+                            ["", "Boa sessão.", "Fadiga alta.", "Foco em técnica."]
+                        ),
                         "Completed",
                         Json(completed_exercises, dumps=_json_dumps),
                         Json(progress, dumps=_json_dumps),
@@ -624,10 +671,18 @@ def main():
             for i in range(cfg.scheduled_sessions_per_athlete):
                 days_ahead = rng.randint(1, 21)
                 s_date = today + timedelta(days=days_ahead)
-                s_time = time(hour=rng.choice([7, 8, 9, 18, 19, 20]), minute=rng.choice([0, 15, 30, 45]))
+                s_time = time(
+                    hour=rng.choice([7, 8, 9, 18, 19, 20]),
+                    minute=rng.choice([0, 15, 30, 45]),
+                )
 
-                selected_exercises = rng.sample(exercise_names, k=min(5, len(exercise_names)))
-                planned = [_make_planned_exercise(name, idx=j, rng=rng) for j, name in enumerate(selected_exercises)]
+                selected_exercises = rng.sample(
+                    exercise_names, k=min(5, len(exercise_names))
+                )
+                planned = [
+                    _make_planned_exercise(name, idx=j, rng=rng)
+                    for j, name in enumerate(selected_exercises)
+                ]
 
                 cur.execute(
                     """
@@ -639,7 +694,9 @@ def main():
                     """,
                     (
                         athlete_id,
-                        rng.choice(["Sessão Planeada", "Treino Agendado", "Sessão Técnica"]),
+                        rng.choice(
+                            ["Sessão Planeada", "Treino Agendado", "Sessão Técnica"]
+                        ),
                         s_date,
                         s_time,
                         rng.choice([45, 60, 75]),
@@ -692,7 +749,9 @@ def main():
         print(f"- Exercises: {exercises_count}")
         print(f"- Training sessions: {sessions_count} (inserted {inserted_sessions})")
         print(f"- Evaluations: {evals_count}")
-        print("\nNow run: streamlit run 🏠_Homepage.py")
+        print(
+            "\nRun the FastAPI backend: poetry run uvicorn backend.main:app --reload --port 8000"
+        )
 
     except Exception:
         conn.rollback()

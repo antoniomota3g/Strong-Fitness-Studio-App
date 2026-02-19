@@ -6,9 +6,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-streamlit = "^1.49.0"
 pydantic-settings = "^2.8.1"
-streamlit-calendar = "^1.4.0"
 psycopg2-binary = "^2.9.11"
 fastapi = "^0.115.0"
 uvicorn = {extras = ["standard"], version = "^0.34.0"}

@@ -18,6 +18,7 @@ class AthleteCreate(BaseModel):
     fitness_level: str | None = None
     goals: list[str] | None = None
     medical_conditions: str | None = None
+    notes: str | None = None
 
     # Billing plan
     plan_type: str | None = None  # 'monthly' | 'on_demand'
@@ -38,6 +39,7 @@ class AthleteUpdate(BaseModel):
     fitness_level: str | None = None
     goals: list[str] | None = None
     medical_conditions: str | None = None
+    notes: str | None = None
 
     # Billing plan
     plan_type: str | None = None
@@ -59,8 +61,12 @@ class ExerciseCreate(BaseModel):
     muscle_groups: str | None = None
     equipment: str | None = None
     difficulty: str | None = None
+    exercise_type: str | None = None
+    sets_range: str | None = None
+    reps_range: str | None = None
     description: str | None = None
     instructions: str | None = None
+    tips: str | None = None
     video_url: str | None = None
 
 
@@ -70,8 +76,12 @@ class ExerciseUpdate(BaseModel):
     muscle_groups: str | None = None
     equipment: str | None = None
     difficulty: str | None = None
+    exercise_type: str | None = None
+    sets_range: str | None = None
+    reps_range: str | None = None
     description: str | None = None
     instructions: str | None = None
+    tips: str | None = None
     video_url: str | None = None
 
 
