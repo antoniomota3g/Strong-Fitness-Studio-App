@@ -39,7 +39,10 @@ export function createAppTheme(mode: PaletteMode) {
           html: {
             // Prevent horizontal layout shift when navigating between pages
             // that do/don't require a vertical scrollbar.
-            scrollbarGutter: 'stable',
+            // Only apply on desktop — mobile browsers handle this differently.
+            '@media (min-width: 600px)': {
+              scrollbarGutter: 'stable'
+            },
             // Fallback for browsers that don't support scrollbar-gutter.
             '@supports not (scrollbar-gutter: stable)': {
               overflowY: 'scroll'

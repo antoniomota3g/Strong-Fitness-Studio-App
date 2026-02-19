@@ -23,6 +23,8 @@ import {
   TextField,
   Typography
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
@@ -116,6 +118,8 @@ function statusChipColor(status?: string | null): 'default' | 'success' | 'warni
 }
 
 export function SessionsPage() {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const athletesQuery = useQuery({ queryKey: ['athletes'], queryFn: listAthletes })
   const exercisesQuery = useQuery({ queryKey: ['exercises'], queryFn: listExercises })
 
@@ -351,7 +355,7 @@ export function SessionsPage() {
   }, [filteredSessions, visibleCount])
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.5, sm: 3 } }}>
       <Stack spacing={3}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
           <Box>
@@ -398,56 +402,60 @@ export function SessionsPage() {
           </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              select
-              label="Filtrar por Atleta"
-              value={filterAthleteId}
-              onChange={(e) => setFilterAthleteId(e.target.value === '' ? '' : Number(e.target.value))}
-              fullWidth
-            >
-              <MenuItem value="">Todos</MenuItem>
-              {athletes.map((a) => (
-                <MenuItem key={a.id} value={a.id}>
-                  {a.first_name} {a.last_name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
+              <TextField
+                select
+                label="Filtrar por Atleta"
+                value={filterAthleteId}
+                onChange={(e) => setFilterAthleteId(e.target.value === '' ? '' : Number(e.target.value))}
+                fullWidth
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {athletes.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.first_name} {a.last_name}
+                  </MenuItem>
+                ))}
+              </TextField>
 
-            <TextField
-              select
-              label="Filtrar por Estado"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              fullWidth
-            >
-              <MenuItem value="Todos">Todos</MenuItem>
-              {STATUS_OPTIONS.map((s) => (
-                <MenuItem key={s} value={s}>{s}</MenuItem>
-              ))}
-            </TextField>
+              <TextField
+                select
+                label="Filtrar por Estado"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                fullWidth
+              >
+                <MenuItem value="Todos">Todos</MenuItem>
+                {STATUS_OPTIONS.map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+              </TextField>
+            </Stack>
 
-            <TextField
-              label="Início"
-              type="date"
-              value={filterStart}
-              onChange={(e) => {
-                setDidUserEditDateRange(true)
-                setFilterStart(e.target.value)
-              }}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Fim"
-              type="date"
-              value={filterEnd}
-              onChange={(e) => {
-                setDidUserEditDateRange(true)
-                setFilterEnd(e.target.value)
-              }}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-            />
+            <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
+              <TextField
+                label="Início"
+                type="date"
+                value={filterStart}
+                onChange={(e) => {
+                  setDidUserEditDateRange(true)
+                  setFilterStart(e.target.value)
+                }}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Fim"
+                type="date"
+                value={filterEnd}
+                onChange={(e) => {
+                  setDidUserEditDateRange(true)
+                  setFilterEnd(e.target.value)
+                }}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Stack>
           </Stack>
         </Stack>
 
@@ -498,42 +506,42 @@ export function SessionsPage() {
                 <AccordionSummary
                   expandIcon={<ExpandMoreIcon />}
                   sx={{
-                    px: 2,
+                    px: { xs: 1.25, sm: 2 },
                     py: 1.25,
                     bgcolor: (theme) =>
                       theme.palette.mode === 'dark'
                         ? alpha(theme.palette.common.white, 0.04)
                         : alpha(theme.palette.common.black, 0.02),
-                    '& .MuiAccordionSummary-content': { my: 0 }
+                    '& .MuiAccordionSummary-content': { my: 0, minWidth: 0 }
                   }}
                 >
-                  <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 800 }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                    <Avatar sx={{ width: { xs: 34, sm: 40 }, height: { xs: 34, sm: 40 }, fontSize: { xs: '0.85rem', sm: '1rem' }, bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 800, flexShrink: 0 }}>
                       {initials(s.athlete_first_name, s.athlete_last_name)}
                     </Avatar>
 
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flexWrap: 'wrap' }}>
+                    <Box sx={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
                         <Typography fontWeight={800} noWrap sx={{ minWidth: 0 }}>
                           {s.session_name}
                         </Typography>
-                        {s.session_type ? <Chip size="small" label={s.session_type} variant="outlined" /> : null}
-                        {s.status ? <Chip size="small" label={s.status} color={statusChipColor(s.status)} variant="outlined" /> : null}
+                        {s.session_type ? <Chip size="small" label={s.session_type} variant="outlined" sx={{ display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0 }} /> : null}
+                        {s.status ? <Chip size="small" label={s.status} color={statusChipColor(s.status)} variant="outlined" sx={{ flexShrink: 0 }} /> : null}
                       </Stack>
 
-                      <Typography variant="body2" color="text.secondary" noWrap>
+                      <Typography variant="body2" color="text.secondary" noWrap sx={{ minWidth: 0 }}>
                         {formatDate(s.session_date)} • {formatTimeHHMM(s.session_time)} • {athleteName} • {exCount} exercício(s)
                       </Typography>
                     </Box>
                   </Stack>
                 </AccordionSummary>
 
-                <AccordionDetails sx={{ px: 2, pb: 2 }}>
+                <AccordionDetails sx={{ px: { xs: 1.25, sm: 2 }, pb: 2 }}>
                   {expandedId === s.id ? (
                     <TrainingSessionDetailsCard
                       session={s}
                       footer={
-                        <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="flex-end" spacing={1}>
                           <Button
                             variant="outlined"
                             onClick={() => openEdit(s)}
@@ -598,6 +606,7 @@ export function SessionsPage() {
         }}
         fullWidth
         maxWidth="md"
+        fullScreen={isMobile}
       >
         <DialogTitle>{formMode === 'edit' ? 'Editar Sessão' : 'Registar Sessão'}</DialogTitle>
         <DialogContent dividers>

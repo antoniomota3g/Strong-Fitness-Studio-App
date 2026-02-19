@@ -23,6 +23,8 @@ import {
   TextField,
   Typography
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
@@ -108,6 +110,8 @@ function DetailRow(props: { icon: ReactNode; label: string; value: ReactNode }) 
 }
 
 export function EvaluationsPage() {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const athletesQuery = useQuery({ queryKey: ['athletes'], queryFn: listAthletes })
 
   const [addOpen, setAddOpen] = useState(false)
@@ -291,7 +295,7 @@ export function EvaluationsPage() {
   }, [filteredEvaluations, visibleCount])
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.5, sm: 3 } }}>
       <Stack spacing={3}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
           <Box>
@@ -425,7 +429,7 @@ export function EvaluationsPage() {
                 <AccordionSummary
                   expandIcon={<ExpandMoreIcon />}
                   sx={{
-                    px: 2,
+                    px: { xs: 1.25, sm: 2 },
                     py: 1.25,
                     bgcolor: (theme) =>
                       theme.palette.mode === 'dark'
@@ -434,8 +438,8 @@ export function EvaluationsPage() {
                     '& .MuiAccordionSummary-content': { my: 0 }
                   }}
                 >
-                  <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 800 }}>
+                  <Stack direction="row" spacing={{ xs: 1.5, sm: 2 }} alignItems="center" sx={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                    <Avatar sx={{ width: { xs: 32, sm: 40 }, height: { xs: 32, sm: 40 }, fontSize: { xs: '0.85rem', sm: '1rem' }, bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 800 }}>
                       {initials(e.athlete_first_name, e.athlete_last_name)}
                     </Avatar>
 
@@ -444,17 +448,20 @@ export function EvaluationsPage() {
                         <Typography fontWeight={800} noWrap sx={{ minWidth: 0 }}>
                           {athleteName}
                         </Typography>
-                        <Chip size="small" label={formatDate(e.evaluation_date)} variant="outlined" />
+                        <Chip size="small" label={formatDate(e.evaluation_date)} variant="outlined" sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />
                       </Stack>
 
                       <Typography variant="body2" color="text.secondary" noWrap>
-                        Peso: {e.weight ?? '—'} • Músculo: {e.muscle_percentage ?? '—'} • Gordura: {e.fat_percentage ?? '—'}
+                        {isMobile
+                          ? `${formatDate(e.evaluation_date)} · ${e.weight != null ? `${e.weight} kg` : '—'}`
+                          : `Peso: ${e.weight ?? '—'} · Músculo: ${e.muscle_percentage ?? '—'} · Gordura: ${e.fat_percentage ?? '—'}`
+                        }
                       </Typography>
                     </Box>
                   </Stack>
                 </AccordionSummary>
 
-                <AccordionDetails sx={{ px: 2, pb: 2 }}>
+                <AccordionDetails sx={{ px: { xs: 1, sm: 2 }, pb: 2 }}>
                   <Card
                     variant="outlined"
                     sx={{
@@ -514,7 +521,7 @@ export function EvaluationsPage() {
                           </Stack>
                         </Box>
 
-                        <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="flex-end" spacing={1}>
                           <Button
                             variant="outlined"
                             onClick={() => openEdit(e)}
@@ -575,6 +582,7 @@ export function EvaluationsPage() {
         }}
         fullWidth
         maxWidth="md"
+        fullScreen={isMobile}
       >
         <DialogTitle>{formMode === 'edit' ? 'Editar Avaliação' : 'Registar Avaliação'}</DialogTitle>
         <DialogContent dividers>

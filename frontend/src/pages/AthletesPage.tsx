@@ -24,6 +24,8 @@ import {
   TextField,
   Typography
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AddIcon from '@mui/icons-material/Add'
 import EmailIcon from '@mui/icons-material/Email'
@@ -104,6 +106,8 @@ function DetailRow(props: { icon: ReactNode; label: string; value: ReactNode }) 
 }
 
 export function AthletesPage() {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [addOpen, setAddOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null)
@@ -278,7 +282,7 @@ export function AthletesPage() {
   ])
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.5, sm: 3 } }}>
       <Stack spacing={3}>
 
         <Stack
@@ -379,53 +383,48 @@ export function AthletesPage() {
                 <AccordionSummary
                   expandIcon={<ExpandMoreIcon />}
                   sx={{
-                    px: 2,
+                    px: { xs: 1.25, sm: 2 },
                     py: 1.25,
                     bgcolor: (theme) =>
                       theme.palette.mode === 'dark'
                         ? alpha(theme.palette.common.white, 0.04)
                         : alpha(theme.palette.common.black, 0.02),
-                    '& .MuiAccordionSummary-content': { my: 0 }
+                    '& .MuiAccordionSummary-content': { my: 0, minWidth: 0 }
                   }}
                 >
-                  <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
                     <Avatar
                       sx={{
-                        width: 40,
-                        height: 40,
+                        width: { xs: 34, sm: 40 },
+                        height: { xs: 34, sm: 40 },
+                        fontSize: { xs: '0.85rem', sm: '1rem' },
                         bgcolor: 'primary.main',
                         color: 'primary.contrastText',
-                        fontWeight: 800
+                        fontWeight: 800,
+                        flexShrink: 0
                       }}
                     >
                       {initials(a.first_name, a.last_name)}
                     </Avatar>
 
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Box sx={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                       <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-                        <Typography fontWeight={800} noWrap>
+                        <Typography fontWeight={800} noWrap sx={{ minWidth: 0 }}>
                           {title}
                         </Typography>
                         {a.fitness_level ? (
-                          <Chip size="small" label={a.fitness_level} variant="outlined" />
+                          <Chip size="small" label={a.fitness_level} variant="outlined" sx={{ display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0 }} />
                         ) : null}
                       </Stack>
 
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, mt: 0.25 }}>
-                        <Typography variant="body2" color="text.secondary" noWrap sx={{ flex: 1 }}>
-                          {a.email ?? '—'}
-                        </Typography>
-                        {a.phone ? (
-                          <Typography variant="body2" color="text.secondary" noWrap>
-                            {formatPhoneNumber(a.phone)}
-                          </Typography>
-                        ) : null}
-                      </Stack>
+                      <Typography variant="body2" color="text.secondary" noWrap sx={{ minWidth: 0 }}>
+                        {a.email ?? '—'}
+                      </Typography>
                     </Box>
                   </Stack>
                 </AccordionSummary>
 
-                <AccordionDetails sx={{ px: 2, pb: 2 }}>
+                <AccordionDetails sx={{ px: { xs: 1.25, sm: 2 }, pb: 2 }}>
                   <Card
                     variant="outlined"
                     sx={{
@@ -527,7 +526,7 @@ export function AthletesPage() {
                           </Stack>
                         ) : null}
 
-                        <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="flex-end" spacing={1}>
                           <Button
                             startIcon={<EditIcon />}
                             variant="outlined"
@@ -587,6 +586,7 @@ export function AthletesPage() {
         }}
         fullWidth
         maxWidth="md"
+        fullScreen={isMobile}
       >
         <DialogTitle>{formMode === 'edit' ? 'Editar Atleta' : 'Registar Atleta'}</DialogTitle>
         <DialogContent dividers>

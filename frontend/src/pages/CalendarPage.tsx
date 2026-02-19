@@ -14,9 +14,10 @@ import {
   MenuItem,
   Stack,
   TextField,
-  Typography
+  Typography,
+  useMediaQuery
 } from '@mui/material'
-import { alpha } from '@mui/material/styles'
+import { alpha, useTheme } from '@mui/material/styles'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
@@ -277,8 +278,11 @@ export function CalendarPage() {
 
   const canStartSelected = selected ? selected.status !== 'Completed' && selected.status !== 'Cancelled' : false
 
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.5, sm: 3 } }}>
       <Stack spacing={2}>
         <Typography variant="h4">Calendário</Typography>
 
@@ -383,7 +387,7 @@ export function CalendarPage() {
                     setCursorDate(d)
                   }
                 }}
-                sx={{ minWidth: 150, flexShrink: 0 }}
+                sx={{ minWidth: { xs: 120, sm: 150 }, flexShrink: 0 }}
                 InputLabelProps={{ shrink: true }}
               />
             ) : null}
@@ -395,7 +399,8 @@ export function CalendarPage() {
               label="Atleta"
               value={filterAthleteId}
               onChange={(e) => setFilterAthleteId(e.target.value === '' ? '' : Number(e.target.value))}
-              sx={{ minWidth: 220 }}
+              fullWidth
+              sx={{ minWidth: { xs: 0, sm: 220 } }}
             >
               <MenuItem value="">Todos</MenuItem>
               {athletes.map((a) => (
@@ -410,7 +415,8 @@ export function CalendarPage() {
               label="Estado"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              sx={{ minWidth: 180 }}
+              fullWidth
+              sx={{ minWidth: { xs: 0, sm: 180 } }}
             >
               <MenuItem value="">Todos</MenuItem>
               <MenuItem value="Scheduled">Scheduled</MenuItem>
@@ -424,7 +430,7 @@ export function CalendarPage() {
           <Alert severity="error">Falha ao carregar atletas ou sessões. Confirme backend/DB.</Alert>
         )}
 
-        {view === 'month' ? (
+        {view === 'month' && !isMobile ? (
           <Box
             sx={{
               display: 'grid',
@@ -536,8 +542,87 @@ export function CalendarPage() {
           </Box>
         ) : null}
 
-        {view === 'week' ? (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 1 }}>
+        {/* Mobile month agenda view */}
+        {view === 'month' && isMobile ? (
+          <Stack spacing={1}>
+            {(() => {
+              const monthDays = cells.filter((c) => c.inMonth)
+              const daysWithSessions = monthDays.filter((c) => (sessionsByDate.get(c.iso) ?? []).length > 0)
+              if (daysWithSessions.length === 0) {
+                return <Alert severity="info">Sem sessões este mês.</Alert>
+              }
+              const dayFmt = new Intl.DateTimeFormat('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })
+              return daysWithSessions.map((cell) => {
+                const daySessions = sessionsByDate.get(cell.iso) ?? []
+                const isToday = cell.iso === todayIso
+                return (
+                  <Box key={cell.iso}>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                      {isToday ? (
+                        <Chip size="small" label="Hoje" color="primary" variant="filled" />
+                      ) : null}
+                      <Typography
+                        variant="subtitle2"
+                        fontWeight={900}
+                        sx={{ textTransform: 'capitalize', cursor: 'pointer' }}
+                        onClick={() => goToDay(cell.date)}
+                      >
+                        {dayFmt.format(cell.date)}
+                      </Typography>
+                      <Chip size="small" label={daySessions.length} variant="outlined" />
+                    </Stack>
+                    <Stack spacing={0.5}>
+                      {daySessions.map((s) => (
+                        <Box
+                          key={s.id}
+                          onClick={() => setSelected(s)}
+                          sx={[
+                            {
+                              border: 1,
+                              borderColor: 'divider',
+                              borderRadius: 1.5,
+                              p: 1,
+                              bgcolor: 'background.paper',
+                              cursor: 'pointer'
+                            },
+                            entrySx(s.status)
+                          ]}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography variant="body2" fontWeight={800} noWrap>
+                                {formatTimeHHMM(s.session_time)} · {athleteLabel(s)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" noWrap>
+                                {s.session_type ?? '—'}
+                              </Typography>
+                            </Box>
+                            {s.status ? (
+                              <Chip
+                                size="small"
+                                label={statusLabel(s.status)}
+                                color={statusChipColor(s.status)}
+                                variant="outlined"
+                                sx={{ flexShrink: 0 }}
+                              />
+                            ) : null}
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                )
+              })
+            })()}
+          </Stack>
+        ) : null}
+
+        {view === 'week' && !isMobile ? (
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            gap: 1
+          }}>
             {weekDays.map((d) => {
               const daySessions = sessionsByDate.get(d.iso) ?? []
               const isToday = d.iso === todayIso
@@ -623,6 +708,77 @@ export function CalendarPage() {
           </Box>
         ) : null}
 
+        {/* Mobile week agenda view */}
+        {view === 'week' && isMobile ? (
+          <Stack spacing={1}>
+            {weekDays.map((d) => {
+              const daySessions = sessionsByDate.get(d.iso) ?? []
+              const isToday = d.iso === todayIso
+              return (
+                <Box key={d.iso}>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                    {isToday ? (
+                      <Chip size="small" label="Hoje" color="primary" variant="filled" />
+                    ) : null}
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={900}
+                      sx={{ textTransform: 'capitalize', cursor: 'pointer' }}
+                      onClick={() => goToDay(d.date)}
+                    >
+                      {d.label}
+                    </Typography>
+                    {daySessions.length > 0 ? <Chip size="small" label={daySessions.length} variant="outlined" /> : null}
+                  </Stack>
+                  {daySessions.length === 0 ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>Sem sessões</Typography>
+                  ) : (
+                    <Stack spacing={0.5}>
+                      {daySessions.map((s) => (
+                        <Box
+                          key={s.id}
+                          onClick={() => setSelected(s)}
+                          sx={[
+                            {
+                              border: 1,
+                              borderColor: 'divider',
+                              borderRadius: 1.5,
+                              p: 1,
+                              bgcolor: 'background.paper',
+                              cursor: 'pointer'
+                            },
+                            entrySx(s.status)
+                          ]}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography variant="body2" fontWeight={800} noWrap>
+                                {formatTimeHHMM(s.session_time)} · {athleteLabel(s)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" noWrap>
+                                {s.session_type ?? '—'}
+                              </Typography>
+                            </Box>
+                            {s.status ? (
+                              <Chip
+                                size="small"
+                                label={statusLabel(s.status)}
+                                color={statusChipColor(s.status)}
+                                variant="outlined"
+                                sx={{ flexShrink: 0 }}
+                              />
+                            ) : null}
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+              )
+            })}
+          </Stack>
+        ) : null}
+
         {view === 'day' ? (
           <Box>
             {(() => {
@@ -642,39 +798,37 @@ export function CalendarPage() {
                     daySessions.map((s) => (
                       <Box
                         key={s.id}
+                        onClick={() => setSelected(s)}
                         sx={[
                           {
                             border: 1,
                             borderColor: 'divider',
-                            borderRadius: 2,
-                            p: 1.25,
-                            bgcolor: 'background.paper'
+                            borderRadius: 1.5,
+                            p: 1,
+                            bgcolor: 'background.paper',
+                            cursor: 'pointer'
                           },
                           entrySx(s.status)
                         ]}
                       >
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} justifyContent="space-between">
+                        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                           <Box sx={{ minWidth: 0 }}>
-                            <Typography fontWeight={900} noWrap title={s.session_name}>
-                              {formatTimeHHMM(s.session_time)} • {athleteLabel(s)}
+                            <Typography variant="body2" fontWeight={800} noWrap>
+                              {formatTimeHHMM(s.session_time)} · {athleteLabel(s)}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary" noWrap>
-                              {s.session_type ? s.session_type : '—'}
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {s.session_type ?? '—'}
                             </Typography>
                           </Box>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            {s.status ? (
-                              <Chip
-                                size="small"
-                                label={statusLabel(s.status)}
-                                color={statusChipColor(s.status)}
-                                variant={s.status === 'Scheduled' ? 'filled' : 'outlined'}
-                              />
-                            ) : null}
-                            <Button size="small" variant="contained" onClick={() => setSelected(s)}>
-                              Abrir
-                            </Button>
-                          </Stack>
+                          {s.status ? (
+                            <Chip
+                              size="small"
+                              label={statusLabel(s.status)}
+                              color={statusChipColor(s.status)}
+                              variant="outlined"
+                              sx={{ flexShrink: 0 }}
+                            />
+                          ) : null}
                         </Stack>
                       </Box>
                     ))
@@ -686,7 +840,7 @@ export function CalendarPage() {
         ) : null}
       </Stack>
 
-      <Dialog open={!!selected} onClose={() => setSelected(null)} fullWidth maxWidth="md">
+      <Dialog open={!!selected} onClose={() => setSelected(null)} fullWidth maxWidth="md" fullScreen={isMobile}>
         {selected ? (
           <DialogTitle sx={{ pb: 1.25 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems={{ sm: 'center' }} justifyContent="space-between">
@@ -713,11 +867,26 @@ export function CalendarPage() {
           {selected ? <TrainingSessionDetailsCard session={selected} /> : null}
         </DialogContent>
 
-        <DialogActions>
-          <Button onClick={() => setSelected(null)}>Fechar</Button>
-
+        <DialogActions sx={{ p: 2 }}>
           {selected ? (
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ ml: 'auto' }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: '100%' }}>
+              <Button
+                variant="contained"
+                disabled={deleteMutation.isPending || updateMutation.isPending || !canStartSelected}
+                onClick={() => {
+                  if (!selected) return
+                  try {
+                    localStorage.setItem(ACTIVE_SESSION_KEY, String(selected.id))
+                  } catch {
+                    // ignore
+                  }
+                  setSelected(null)
+                  navigate('/treino')
+                }}
+              >
+                Iniciar treino
+              </Button>
+
               <Button
                 variant="outlined"
                 color="warning"
@@ -737,23 +906,6 @@ export function CalendarPage() {
               </Button>
 
               <Button
-                variant="contained"
-                disabled={deleteMutation.isPending || updateMutation.isPending || !canStartSelected}
-                onClick={() => {
-                  if (!selected) return
-                  try {
-                    localStorage.setItem(ACTIVE_SESSION_KEY, String(selected.id))
-                  } catch {
-                    // ignore
-                  }
-                  setSelected(null)
-                  navigate('/treino')
-                }}
-              >
-                Iniciar treino
-              </Button>
-
-              <Button
                 color="error"
                 disabled={deleteMutation.isPending || updateMutation.isPending}
                 onClick={() => {
@@ -764,8 +916,14 @@ export function CalendarPage() {
               >
                 Eliminar
               </Button>
+
+              <Box sx={{ flex: { sm: 1 } }} />
+
+              <Button onClick={() => setSelected(null)}>Fechar</Button>
             </Stack>
-          ) : null}
+          ) : (
+            <Button onClick={() => setSelected(null)}>Fechar</Button>
+          )}
         </DialogActions>
       </Dialog>
     </Container>

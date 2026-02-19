@@ -109,7 +109,7 @@ function Sparkline(props: { series: SeriesPoint[] }) {
     .join(' ')
 
   return (
-    <Box sx={{ width: w, height: h }}>
+    <Box sx={{ width: { xs: 140, sm: 220 }, height: h }}>
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
         <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" opacity="0.8" />
         {props.series.map((p, idx) => {
@@ -258,9 +258,12 @@ function TimeSeriesChart(props: { seriesList: ChartSeries[] }) {
   })()
 
   return (
-    <Box ref={containerRef} sx={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
-      <Box sx={{ width: '100%', height: h }}>
-        <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Gráfico de métricas">
+    <Box ref={containerRef} sx={{ position: 'relative', width: '100%', overflow: 'hidden' }} onTouchStart={(e) => {
+      // Dismiss tooltip when tapping outside chart bands
+      if ((e.target as Element)?.tagName !== 'rect') setHover(null)
+    }}>
+      <Box sx={{ width: '100%' }}>
+        <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }} role="img" aria-label="Gráfico de métricas">
           {yTicks.map((t, i) => {
             const y = yForValue(t)
             return (
@@ -335,6 +338,24 @@ function TimeSeriesChart(props: { seriesList: ChartSeries[] }) {
                   width={width}
                   height={h - padTop - padBottom}
                   fill="transparent"
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    const rect = containerRef.current?.getBoundingClientRect()
+                    if (!rect) return
+                    const items = makeHoverItems(d)
+                    if (items.length === 0) return
+                    // Toggle: tap same date again to dismiss
+                    if (hover?.date === d) { setHover(null); return }
+                    const touch = e.touches[0]
+                    setHover({
+                      date: d,
+                      items,
+                      x: touch.clientX - rect.left,
+                      y: touch.clientY - rect.top,
+                      cw: rect.width,
+                      ch: rect.height
+                    })
+                  }}
                   onMouseEnter={(e) => {
                     const rect = containerRef.current?.getBoundingClientRect()
                     if (!rect) return
@@ -663,7 +684,7 @@ export function AnalysisPage() {
   }, [completedSessions, evaluations])
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.5, sm: 3 } }}>
       <Stack spacing={3}>
         <Box>
           <Typography variant="h4">Análise</Typography>

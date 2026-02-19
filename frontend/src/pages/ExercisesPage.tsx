@@ -23,6 +23,8 @@ import {
   TextField,
   Typography
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
@@ -133,6 +135,8 @@ function DetailRow(props: { icon: ReactNode; label: string; value: ReactNode }) 
 }
 
 export function ExercisesPage() {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [addOpen, setAddOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null)
@@ -303,7 +307,7 @@ export function ExercisesPage() {
   }, [canSubmit, category, description, difficulty, equipment, exerciseType, instructions, muscleGroups, name, repsRange, setsRange, tips, videoUrl])
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.5, sm: 3 } }}>
       <Stack spacing={3}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
           <Box>
@@ -439,37 +443,37 @@ export function ExercisesPage() {
                 <AccordionSummary
                   expandIcon={<ExpandMoreIcon />}
                   sx={{
-                    px: 2,
+                    px: { xs: 1.25, sm: 2 },
                     py: 1.25,
                     bgcolor: (theme) =>
                       theme.palette.mode === 'dark'
                         ? alpha(theme.palette.common.white, 0.04)
                         : alpha(theme.palette.common.black, 0.02),
-                    '& .MuiAccordionSummary-content': { my: 0 }
+                    '& .MuiAccordionSummary-content': { my: 0, minWidth: 0 }
                   }}
                 >
-                  <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                    <Avatar sx={{ width: { xs: 34, sm: 40 }, height: { xs: 34, sm: 40 }, bgcolor: 'primary.main', color: 'primary.contrastText', flexShrink: 0 }}>
                       <FitnessCenterIcon fontSize="small" />
                     </Avatar>
 
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flexWrap: 'wrap' }}>
+                    <Box sx={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
                         <Typography fontWeight={800} sx={{ minWidth: 0 }} noWrap>
                           {e.name}
                         </Typography>
-                        {e.category ? <Chip size="small" label={e.category} variant="outlined" /> : null}
-                        {e.difficulty ? <Chip size="small" label={e.difficulty} variant="outlined" /> : null}
+                        {e.category ? <Chip size="small" label={e.category} variant="outlined" sx={{ display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0 }} /> : null}
+                        {e.difficulty ? <Chip size="small" label={e.difficulty} variant="outlined" sx={{ display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0 }} /> : null}
                       </Stack>
 
-                      <Typography variant="body2" color="text.secondary" noWrap>
+                      <Typography variant="body2" color="text.secondary" noWrap sx={{ minWidth: 0 }}>
                         {muscles.length > 0 ? muscles.join(', ') : '—'}
                       </Typography>
                     </Box>
                   </Stack>
                 </AccordionSummary>
 
-                <AccordionDetails sx={{ px: 2, pb: 2 }}>
+                <AccordionDetails sx={{ px: { xs: 1.25, sm: 2 }, pb: 2 }}>
                   <Card
                     variant="outlined"
                     sx={{
@@ -548,7 +552,7 @@ export function ExercisesPage() {
                           />
                         ) : null}
 
-                        <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="flex-end" spacing={1}>
                           <Button
                             startIcon={<EditIcon />}
                             variant="outlined"
@@ -608,6 +612,7 @@ export function ExercisesPage() {
         }}
         fullWidth
         maxWidth="md"
+        fullScreen={isMobile}
       >
         <DialogTitle>{formMode === 'edit' ? 'Editar Exercício' : 'Registar Exercício'}</DialogTitle>
         <DialogContent dividers>
